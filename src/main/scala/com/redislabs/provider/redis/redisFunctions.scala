@@ -8,6 +8,8 @@ import com.redislabs.provider.redis.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.StreamingContext
 
+import scala.collection.JavaConversions._
+
 /**
   * RedisContext extends sparkContext's functionality with redis functions
   *
@@ -19,12 +21,14 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
 
   /**
     * @param keyPattern a key pattern to match, or a single key
-    * @param partitionNum number of partitions
+    * @param partitionNum number of partitions, default set to zero, with redis nodes number
     * @return RedisKeysRDD of simple Keys stored in redis server
     */
   def fromRedisKeyPattern(keyPattern: String = "*",
-                          partitionNum: Int = 3)
-                         (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                          partitionNum: Int = 0,
+                          props: java.util.Map[String, String] = null)
+                         (implicit redisConfig: RedisConfig =
+                         if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RedisKeysRDD = {
     new RedisKeysRDD(sc, redisConfig, keyPattern, partitionNum, null)
   }
@@ -35,8 +39,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisKeysRDD of simple Keys stored in redis server
     */
   def fromRedisKeys(keys: Array[String],
-                    partitionNum: Int = 3)
-                   (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                    partitionNum: Int = 0,
+                    props: java.util.Map[String, String] = null)
+                   (implicit redisConfig: RedisConfig =
+                   if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RedisKeysRDD = {
     new RedisKeysRDD(sc, redisConfig, "", partitionNum, keys)
   }
@@ -47,8 +53,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisKVRDD of simple Key-Values stored in redis server
     */
   def fromRedisKV[T](keysOrKeyPattern: T,
-                     partitionNum: Int = 3)
-                    (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                     partitionNum: Int = 0,
+                     props: java.util.Map[String, String] = null)
+                    (implicit redisConfig: RedisConfig =
+                    if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[(String, String)] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getKV
@@ -63,8 +71,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisListRDD of related values stored in redis server
     */
   def fromRedisList[T](keysOrKeyPattern: T,
-                       partitionNum: Int = 3)
-                      (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                       partitionNum: Int = 0,
+                       props: java.util.Map[String, String] = null)
+                      (implicit redisConfig: RedisConfig =
+                      if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[String] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getList
@@ -79,8 +89,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisZSetRDD of Keys in related ZSets stored in redis server
     */
   def fromRedisSet[T](keysOrKeyPattern: T,
-                      partitionNum: Int = 3)
-                     (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                      partitionNum: Int = 3,
+                      props: java.util.Map[String, String] = null)
+                      (implicit redisConfig: RedisConfig =
+                      if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[String] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getSet
@@ -95,8 +107,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisHashRDD of related Key-Values stored in redis server
     */
   def fromRedisHash[T](keysOrKeyPattern: T,
-                       partitionNum: Int = 3)
-                      (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                       partitionNum: Int = 0,
+                       props: java.util.Map[String, String] = null)
+                      (implicit redisConfig: RedisConfig =
+                      if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[(String, String)] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getHash
@@ -108,11 +122,31 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
   /**
     * @param keysOrKeyPattern an array of keys or a key pattern
     * @param partitionNum number of partitions
+    * @return RedisHashRDD of related Key-Values stored in redis server
+    */
+  def fromRedisHashCSV[T](keysOrKeyPattern : T,
+                       props: java.util.Map[String, String] = null,
+                       partitionNum: Int = 0)
+                   (implicit redisConfig: RedisConfig =
+                   if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
+  RDD[Seq[String]] = {
+    keysOrKeyPattern match {
+      case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getHashCSV()
+      case keys: Array[String] => fromRedisKeys(keys, partitionNum)(redisConfig).getHashCSV()
+      case _ => throw new scala.Exception("KeysOrKeyPattern should be String or Array[String]")
+    }
+  }
+
+  /**
+    * @param keysOrKeyPattern an array of keys or a key pattern
+    * @param partitionNum number of partitions
     * @return RedisZSetRDD of Keys in related ZSets stored in redis server
     */
   def fromRedisZSet[T](keysOrKeyPattern: T,
-                       partitionNum: Int = 3)
-                      (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                       partitionNum: Int = 0,
+                       props: java.util.Map[String, String] = null)
+                      (implicit redisConfig: RedisConfig =
+                      if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[String] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSet
@@ -127,8 +161,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @return RedisZSetRDD of related Key-Scores stored in redis server
     */
   def fromRedisZSetWithScore[T](keysOrKeyPattern: T,
-                                partitionNum: Int = 3)
-                               (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                                partitionNum: Int = 0,
+                                props: java.util.Map[String, String] = null)
+                               (implicit redisConfig: RedisConfig =
+                               if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[(String, Double)] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSetWithScore
@@ -147,8 +183,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
   def fromRedisZRange[T](keysOrKeyPattern: T,
                          start: Int,
                          end: Int,
-                         partitionNum: Int = 3)
-                        (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                         partitionNum: Int = 0,
+                         props: java.util.Map[String, String] = null)
+                        (implicit redisConfig: RedisConfig =
+                        if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[String] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSetByRange(start, end)
@@ -167,8 +205,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
   def fromRedisZRangeWithScore[T](keysOrKeyPattern: T,
                                   start: Int,
                                   end: Int,
-                                  partitionNum: Int = 3)
-                                 (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                                  partitionNum: Int = 0,
+                                  props: java.util.Map[String, String] = null)
+                                 (implicit redisConfig: RedisConfig =
+                                 if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[(String, Double)] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSetByRangeWithScore(start, end)
@@ -187,8 +227,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
   def fromRedisZRangeByScore[T](keysOrKeyPattern: T,
                                 min: Double,
                                 max: Double,
-                                partitionNum: Int = 3)
-                               (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                                partitionNum: Int = 0,
+                                props: java.util.Map[String, String] = null)
+                               (implicit redisConfig: RedisConfig =
+                               if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[String] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSetByScore(min, max)
@@ -207,8 +249,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
   def fromRedisZRangeByScoreWithScore[T](keysOrKeyPattern: T,
                                          min: Double,
                                          max: Double,
-                                         partitionNum: Int = 3)
-                                        (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))):
+                                         partitionNum: Int = 0,
+                                         props: java.util.Map[String, String] = null)
+                                        (implicit redisConfig: RedisConfig =
+                                        if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[(String, Double)] = {
     keysOrKeyPattern match {
       case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getZSetByScoreWithScore(min, max)
@@ -221,8 +265,11 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param kvs Pair RDD of K/V
     * @param ttl time to live
     */
-  def toRedisKV(kvs: RDD[(String, String)], ttl: Int = 0)
-               (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+  def toRedisKV(kvs: RDD[(String, String)],
+                ttl: Int = 0,
+                props: java.util.Map[String, String] = null)
+               (implicit redisConfig: RedisConfig =
+               if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     kvs.foreachPartition(partition => setKVs(partition, ttl, redisConfig))
   }
 
@@ -231,8 +278,12 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param hashName target hash's name which hold all the kvs
     * @param ttl time to live
     */
-  def toRedisHASH(kvs: RDD[(String, String)], hashName: String, ttl: Int = 0)
-                 (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+  def toRedisHASH(kvs: RDD[(String, String)],
+                  hashName: String,
+                  ttl: Int = 0,
+                  props: java.util.Map[String, String] = null)
+                 (implicit redisConfig: RedisConfig =
+                 if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     kvs.foreachPartition(partition => setHash(hashName, partition, ttl, redisConfig))
   }
 
@@ -241,8 +292,12 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param zsetName target zset's name which hold all the kvs
     * @param ttl time to live
     */
-  def toRedisZSET(kvs: RDD[(String, String)], zsetName: String, ttl: Int = 0)
-                 (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+  def toRedisZSET(kvs: RDD[(String, String)],
+                  zsetName: String,
+                  ttl: Int = 0,
+                  props: java.util.Map[String, String] = null)
+                 (implicit redisConfig: RedisConfig =
+                 if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     kvs.foreachPartition(partition => setZset(zsetName, partition, ttl, redisConfig))
   }
 
@@ -251,8 +306,12 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param setName target set's name which hold all the vs
     * @param ttl time to live
     */
-  def toRedisSET(vs: RDD[String], setName: String, ttl: Int = 0)
-                (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+  def toRedisSET(vs: RDD[String],
+                 setName: String,
+                 ttl: Int = 0,
+                 props: java.util.Map[String, String] = null)
+                (implicit redisConfig: RedisConfig =
+                if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     vs.foreachPartition(partition => setSet(setName, partition, ttl, redisConfig))
   }
 
@@ -261,8 +320,12 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param listName target list's name which hold all the vs
     * @param ttl time to live
     */
-  def toRedisLIST(vs: RDD[String], listName: String, ttl: Int = 0)
-                 (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+  def toRedisLIST(vs: RDD[String],
+                  listName: String,
+                  ttl: Int = 0,
+                  props: java.util.Map[String, String] = null)
+                 (implicit redisConfig: RedisConfig =
+                 if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     vs.foreachPartition(partition => setList(listName, partition, ttl, redisConfig))
   }
 
@@ -274,8 +337,10 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     */
   def toRedisFixedLIST(vs: RDD[String],
                        listName: String,
-                       listSize: Int = 0)
-                      (implicit redisConfig: RedisConfig = new RedisConfig(new RedisEndpoint(sc.getConf))) {
+                       listSize: Int = 0,
+                       props: java.util.Map[String, String] = null)
+                      (implicit redisConfig: RedisConfig =
+                      if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)) {
     vs.foreachPartition(partition => setFixedList(listName, listSize, partition, redisConfig))
   }
 }
@@ -292,7 +357,7 @@ object RedisContext extends Serializable {
     arr.map(kv => (redisConfig.getHost(kv._1), kv)).toArray.groupBy(_._1).
       mapValues(a => a.map(p => p._2)).foreach {
       x => {
-        val conn = x._1.endpoint.connect()
+        val conn = redisConfig.connect(x._1)
         val pipeline = conn.pipelined
         if (ttl <= 0) {
           x._2.foreach(x => pipeline.set(x._1, x._2))
@@ -313,7 +378,10 @@ object RedisContext extends Serializable {
     *            save all the k/vs to hashName(list type) to the target host
     * @param ttl time to live
     */
-  def setHash(hashName: String, arr: Iterator[(String, String)], ttl: Int, redisConfig: RedisConfig) {
+  def setHash(hashName: String,
+              arr: Iterator[(String, String)],
+              ttl: Int,
+              redisConfig: RedisConfig) {
     val conn = redisConfig.connectionForKey(hashName)
     val pipeline = conn.pipelined
     arr.foreach(x => pipeline.hset(hashName, x._1, x._2))
@@ -328,7 +396,10 @@ object RedisContext extends Serializable {
     *            save all the k/vs to zsetName(zset type) to the target host
     * @param ttl time to live
     */
-  def setZset(zsetName: String, arr: Iterator[(String, String)], ttl: Int, redisConfig: RedisConfig) {
+  def setZset(zsetName: String,
+              arr: Iterator[(String, String)],
+              ttl: Int,
+              redisConfig: RedisConfig) {
     val conn = redisConfig.connectionForKey(zsetName)
     val pipeline = conn.pipelined
     arr.foreach(x => pipeline.zadd(zsetName, x._2.toDouble, x._1))
@@ -397,9 +468,11 @@ class RedisStreamingContext(@transient val ssc: StreamingContext) extends Serial
     * @return a stream of (listname, value)
     */
   def createRedisStream(keys: Array[String],
-                        storageLevel: StorageLevel = StorageLevel.MEMORY_AND_DISK_2)
-                       (implicit redisConfig: RedisConfig = new RedisConfig(new
-                           RedisEndpoint(ssc.sparkContext.getConf))) = {
+                        storageLevel: StorageLevel = StorageLevel.MEMORY_AND_DISK_2,
+                        props: java.util.Map[String, String] = null)
+                       (implicit redisConfig: RedisConfig =
+                       if(props == null) {new RedisConfig(ssc.sparkContext.getConf)}
+                       else {new RedisConfig(props)}): RedisInputDStream[(String, String)] = {
       new RedisInputDStream(ssc, keys, storageLevel, redisConfig, classOf[(String, String)])
   }
   /**
@@ -408,15 +481,19 @@ class RedisStreamingContext(@transient val ssc: StreamingContext) extends Serial
     * @return a stream of (value)
     */
   def createRedisStreamWithoutListname(keys: Array[String],
-                        storageLevel: StorageLevel = StorageLevel.MEMORY_AND_DISK_2)
-                       (implicit redisConfig: RedisConfig = new RedisConfig(new
-                           RedisEndpoint(ssc.sparkContext.getConf))) = {
+                        storageLevel: StorageLevel = StorageLevel.MEMORY_AND_DISK_2,
+                        props: java.util.Map[String, String] = null)
+                       (implicit redisConfig: RedisConfig =
+                       if (props == null) {new RedisConfig(ssc.sparkContext.getConf)}
+                       else {new RedisConfig(props)}):RedisInputDStream[String] = {
       new RedisInputDStream(ssc, keys, storageLevel, redisConfig, classOf[String])
   }
 }
 
 trait RedisFunctions {
   implicit def toRedisContext(sc: SparkContext): RedisContext = new RedisContext(sc)
-  implicit def toRedisStreamingContext(ssc: StreamingContext): RedisStreamingContext = new RedisStreamingContext(ssc)
+  implicit def toRedisStreamingContext(ssc: StreamingContext): RedisStreamingContext = {
+    new RedisStreamingContext(ssc)
+  }
 }
 
