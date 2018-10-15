@@ -12,9 +12,6 @@ class RedisRDDStandaloneSuite extends FunSuite with ENV with BeforeAndAfterAll w
 
     sc = new SparkContext(new SparkConf()
       .setMaster("local").setAppName(getClass.getName)
-      .set("redis.host", "127.0.0.1")
-      .set("redis.port", "6379")
-      .set("redis.auth", "passwd")
     )
     content = fromInputStream(getClass.getClassLoader.getResourceAsStream("blog")).
       getLines.toArray.mkString("\n")
@@ -24,11 +21,17 @@ class RedisRDDStandaloneSuite extends FunSuite with ENV with BeforeAndAfterAll w
 
     val wds = sc.parallelize(content.split("\\W+").filter(!_.isEmpty))
 
-    redisConfig = new RedisConfig(new RedisEndpoint("127.0.0.1", 6379, "passwd"))
+    val security_props = new java.util.HashMap[String, String]() {
+      //put("redis.servers", "127.0.0.1:7379")
+      //put("redis.server.password", "passwd")
+      put("redis.servers", "host-10-1-236-129:7000")
+    }
+
+    redisConfig = new RedisConfig(security_props)
 
     // Flush all the hosts
     redisConfig.hosts.foreach( node => {
-      val conn = node.connect
+      val conn = redisConfig.connect(node)
       conn.flushAll
       conn.close
     })

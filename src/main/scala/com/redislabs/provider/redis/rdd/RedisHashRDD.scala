@@ -13,17 +13,17 @@ class RedisHashRDD(prev: RDD[String])
 
   override def compute(split: Partition, context: TaskContext): Iterator[Seq[String]] = {
     val partition: RedisPartition = split.asInstanceOf[RedisPartition]
+    val keys = firstParent[String].iterator(split, context)
     val sPos = partition.slots._1
     val ePos = partition.slots._2
     val nodes = partition.redisConfig.getNodesBySlots(sPos, ePos)
-    val keys = firstParent[String].iterator(split, context)
     getHASH(partition.redisConfig, nodes, keys)
   }
 
   def getHASH(redisConfig: RedisConfig,
               nodes: Array[RedisNode],
               keys: Iterator[String]): Iterator[Seq[String]] = {
-    //FIXME to be paralled
+    //FIXME use JedisSlotAdvancedConnectionHandler.getJedisPoolFromSlot instead of groupKeysByNode
     groupKeysByNode(nodes, keys).flatMap {
       x =>
       {

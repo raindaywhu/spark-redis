@@ -25,11 +25,16 @@ class RedisRDDClusterSuite extends FunSuite with ENV with BeforeAndAfterAll with
     val wds = sc.parallelize(content.split("\\W+").filter(!_.isEmpty))
 
     // THERE IS NOT AUTH FOR CLUSTER
-    redisConfig = new RedisConfig(new RedisEndpoint("127.0.0.1", 7379))
+    val props = new java.util.HashMap[String, String]() {
+      //put("redis.servers", "127.0.0.1:7379")
+      put("redis.servers", "host-10-1-236-129:7000")
+    }
+
+    redisConfig = new RedisConfig(props)
 
     // Flush all the hosts
     redisConfig.hosts.foreach( node => {
-      val conn = node.connect
+      val conn = redisConfig.connect(node)
       conn.flushAll
       conn.close
     })

@@ -124,18 +124,23 @@ class RedisContext(@transient val sc: SparkContext) extends Serializable {
     * @param partitionNum number of partitions
     * @return RedisHashRDD of related Key-Values stored in redis server
     */
-  def fromRedisHashCSV[T](keysOrKeyPattern : T,
+  def fromRedisHashCSV(keyPattern : String,
                        props: java.util.Map[String, String] = null,
                        partitionNum: Int = 0)
                    (implicit redisConfig: RedisConfig =
                    if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
   RDD[Seq[String]] = {
-    keysOrKeyPattern match {
-      case keyPattern: String => fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getHashCSV()
-      case keys: Array[String] => fromRedisKeys(keys, partitionNum)(redisConfig).getHashCSV()
-      case _ => throw new scala.Exception("KeysOrKeyPattern should be String or Array[String]")
-    }
+    fromRedisKeyPattern(keyPattern, partitionNum)(redisConfig).getHashCSV()
   }
+
+  def fromRedisKeysPlus(rdd: RDD[String],
+                    props: java.util.Map[String, String] = null)
+                   (implicit redisConfig: RedisConfig =
+                   if (null == props) new RedisConfig(sc.getConf) else new RedisConfig(props)):
+  RedisKeysRDDPlus = {
+    new RedisKeysRDDPlus(sc, rdd, redisConfig)
+  }
+
 
   /**
     * @param keysOrKeyPattern an array of keys or a key pattern

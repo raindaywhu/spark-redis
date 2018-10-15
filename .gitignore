@@ -38,3 +38,8 @@ build/*.jar
 .project
 .classpath
 /.settings/
+bak/*
+.travis.yml
+build.sbt
+.travis.yml
+build/*
