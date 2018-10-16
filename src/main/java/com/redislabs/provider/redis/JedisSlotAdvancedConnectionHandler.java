@@ -16,10 +16,16 @@ public class JedisSlotAdvancedConnectionHandler extends JedisSlotBasedConnection
 
     public JedisSlotAdvancedConnectionHandler(Set<HostAndPort> nodes, GenericObjectPoolConfig poolConfig, int connectionTimeout, int soTimeout) {
         super(nodes, poolConfig, connectionTimeout, soTimeout);
+        cache.getNodes().forEach((k,v) -> {
+            logger.info("init hosts: " + k);
+        });
     }
 
     public JedisSlotAdvancedConnectionHandler(Set<HostAndPort> nodes, GenericObjectPoolConfig poolConfig, int connectionTimeout, int soTimeout, String password) {
         super(nodes, poolConfig, connectionTimeout, soTimeout, password);
+        cache.getNodes().forEach((k,v) -> {
+            logger.info("init hosts: " + k);
+        });
     }
 
     public JedisPool getJedisPoolFromSlot(int slot) {
@@ -45,7 +51,19 @@ public class JedisSlotAdvancedConnectionHandler extends JedisSlotBasedConnection
         cache.getNodes().forEach((k,v) -> {
             logger.info("cache map, host: " + k);
         });
-        return cache.getNode(nodeKey);
+        //return cache.getNode(nodeKey);
+        //return cache.setupNodeIfNotExist(new HostAndPort(host, port));
+        JedisPool connPool = cache.getNode(nodeKey);
+        if (null != connPool) {
+            return connPool;
+        } else {
+            renewSlotCache();;
+            if (connPool != null) {
+                return connPool;
+            } else {
+                throw new JedisNoReachableClusterNodeException("No reachable node in cluster for node" + nodeKey);
+            }
+        }
     }
 
     public JedisPool getRandomJedisPool() {
