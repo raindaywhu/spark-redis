@@ -25,11 +25,7 @@ public class JedisClusterPlusFactory {
 
         String jedisServers = props.get(Constant.JEDIS_SERVERS);
 
-        logger.info("Init redis cluster from " + jedisServers);
-
         JedisPoolConfig jedisPoolConfig = getJedisPooConfig(props);
-
-        logger.info("cacheProps= " + props);
 
         HashSet<HostAndPort> jedisClusterNodes = new java.util.HashSet<>();
 

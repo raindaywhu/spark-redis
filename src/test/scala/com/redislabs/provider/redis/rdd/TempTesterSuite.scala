@@ -16,12 +16,12 @@ class TempTesterSuite extends FunSuite {
 
     val props = new java.util.HashMap[String, String]() {
       // put("redis.servers", "127.0.0.1:7379")
-      put("redis.servers", "host-10-1-236-129:7000")
+      put("redis.servers", "host-10-1-236-129:7002")
     }
 
     val redisConfig = new RedisConfig(props)
 
-    val redisHashRDD = sc.fromRedisHashCSV( "lac_cell_*", props)
+    val redisHashRDD = sc.fromRedisHashCSV( "dcache_*", props)
     val hashContents = redisHashRDD.collect.foreach(row => {
       System.out.println("data: " + row.toList)
     })
